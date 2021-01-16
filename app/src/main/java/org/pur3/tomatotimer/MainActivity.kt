@@ -244,7 +244,6 @@ class MainActivity : AppCompatActivity() {
             .setContentText(textContent)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
 
-        builder
     }
 
 }

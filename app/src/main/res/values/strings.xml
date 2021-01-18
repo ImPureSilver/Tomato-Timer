@@ -21,4 +21,14 @@
     <string name="cancel">Cancel</string>
     <string name="work_duration">Work Duration</string>
     <string name="break_duration">Break Duration</string>
+
+    <!-- Notification Channel Info -->
+    <string name="channel_name">Tomato Timer Channel Name</string>
+    <string name="channel_description">Tomato Timer Description</string>
+
+    <!-- Button status for the time initiating/stop/resume button -->
+    <string name="btn_status_start">Start</string>
+    <string name="btn_status_stop">Stop</string>
+    <string name="btn_status_resume">Resume</string>
+
 </resources>

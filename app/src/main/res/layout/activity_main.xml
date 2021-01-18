@@ -29,6 +29,7 @@
         android:layout_marginTop="100dp"
         android:keepScreenOn="true"
         android:text="@string/btn_start"
+        android:textColor="@color/white"
         app:backgroundTint="#4CAF50"
         app:cornerRadius="30sp"
         app:layout_constraintBottom_toTopOf="@+id/btn_work_duration"

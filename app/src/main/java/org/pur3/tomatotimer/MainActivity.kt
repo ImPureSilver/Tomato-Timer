@@ -33,20 +33,16 @@ class MainActivity : AppCompatActivity() {
     lateinit var countDownTimer: CountDownTimer
     private val CHANNEL_ID = "tomato_timer_channel"
 
-    private var workTimeRemaining: Long = 0L
+    private var isBreakTime: Boolean = false
+    private var hasLeftApp: Boolean = false
+
+    private var timeRemaining: Long = 0L
 
     var builder = NotificationCompat.Builder(this, CHANNEL_ID)
         .setSmallIcon(R.drawable.ic_tomato)
         .setContentTitle("Tomato Timer")
         .setContentText("Come back and work!")
         .setPriority(NotificationCompat.PRIORITY_HIGH)
-
-    private var isBreakTime: Boolean = false
-    private var hasLeftApp: Boolean = false
-    private var time_in_milli_seconds = (workTimeMinutes * 60_000L) + (workTimeHours * 5_000L)
-
-    private val baseTimerDuration: Long = 1L
-    private val baseBreakTimerDuration: Long = 1L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,6 +70,7 @@ class MainActivity : AppCompatActivity() {
                     countDownTimer = beginTimer(workTimeHours, workTimeMinutes)
                     countDownTimer.start()
                     it.text = "Stop"
+                    // Upon tapping the button when it says "Start" turn the button red
                     it.setBackgroundColor(Color.rgb(244, 67, 54))
                     // Grey out the set Work/Break buttons
                     turnOffButtons(
@@ -100,12 +97,13 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 "Resume" -> {
-                    // Show the time left from time in milli seconds
-                    // Call the resumeTimer()
-                    countDownTimer = resumeTimer(workTimeRemaining)
-                    countDownTimer.start()
                     // change the button text to "Stop"
                     it.text = "Stop"
+                    // Upon tapping the button when it says "Start" turn the button red
+                    it.setBackgroundColor(Color.rgb(244, 67, 54))
+                    // Call the resumeTimer()
+                    countDownTimer = resumeTimer(timeRemaining)
+                    countDownTimer.start()
                     // turn off the setter buttons
                     turnOffButtons(
                         btnSetWorkDuration,
@@ -138,7 +136,10 @@ class MainActivity : AppCompatActivity() {
             button.setBackgroundColor(Color.BLUE)
         }
 
-        Log.i(TAG, "onResume(): Has set button text to 'Resume' and remaining time is: $workTimeRemaining")
+        Log.i(
+            TAG,
+            "onResume(): Has set button text to 'Resume' and remaining time is: $timeRemaining"
+        )
     }
 
     override fun onPause() {
@@ -159,7 +160,7 @@ class MainActivity : AppCompatActivity() {
     //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
     //                         START/STOP/RESUME TIMER METHODS                            //
     //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
-    private fun beginTimer(hours: Long, minutes: Long = baseTimerDuration): CountDownTimer {
+    private fun beginTimer(hours: Long, minutes: Long): CountDownTimer {
 
         val hourInMillis = hours * 3_600_000L
         val minInMillis = minutes * 60_000L
@@ -167,14 +168,14 @@ class MainActivity : AppCompatActivity() {
 
         val timer = object : CountDownTimer(totalTime, 1000L) {
             override fun onTick(millisUntilFinished: Long) {
-                time_in_milli_seconds = millisUntilFinished
-                workTimeRemaining = millisUntilFinished
-                Log.i(TAG, """
+                timeRemaining = millisUntilFinished
+                Log.i(
+                    TAG, """
                     beginTimer()
-                    time_in_milli_seconds left: $time_in_milli_seconds
-                    workTimeRemaining: $workTimeRemaining
+                    workTimeRemaining: $timeRemaining
                     ________________________________________________
-                """.trimIndent())
+                """.trimIndent()
+                )
                 updateTextUI()
 
             }
@@ -191,38 +192,32 @@ class MainActivity : AppCompatActivity() {
         return timer
     }
 
-    private fun resumeTimer(timeRemainingInMilliSecs: Long): CountDownTimer {
+    private fun resumeTimer(timeRemaining: Long): CountDownTimer {
 
-        val hours = (timeRemainingInMilliSecs / (1000 * 60 * 60)) % 24
-        val minute = (timeRemainingInMilliSecs / (1000 * 60)) % 60
-        val seconds = (timeRemainingInMilliSecs / 1000) % 60
-
-        val totalTime = hours + minute + seconds
-
-        val timer = object : CountDownTimer(totalTime, 1000L) {
+        val timer = object : CountDownTimer(timeRemaining, 1000L) {
             override fun onTick(millisUntilFinished: Long) {
-                time_in_milli_seconds = millisUntilFinished
-                workTimeRemaining = millisUntilFinished
-                Log.i(TAG, """
+                this@MainActivity.timeRemaining = millisUntilFinished
+                Log.i(
+                    TAG, """
                     resumeTimer()
-                    time_in_milli_seconds left: $time_in_milli_seconds
-                    workTimeRemaining: $workTimeRemaining
+                    workTimeRemaining: ${this@MainActivity.timeRemaining}
                     ________________________________________________
-                """.trimIndent())
+                """.trimIndent()
+                )
                 updateTextUI()
             }
 
             override fun onFinish() {
                 soundTimer()
                 isBreakTime = true
-                countDownTimer = beginTimer(workTimeHours, workTimeMinutes)
+                countDownTimer = beginTimer(breakTimeHours, breakTimeMinutes)
                 countDownTimer.start()
             }
         }
         return timer
     }
 
-    private fun breakTimer(hours: Long, minutes: Long = baseBreakTimerDuration): CountDownTimer {
+    private fun breakTimer(hours: Long, minutes: Long): CountDownTimer {
 
         val hourInMillis = hours * 3_600_000L
         val minInMillis = minutes * 60_000L
@@ -230,12 +225,14 @@ class MainActivity : AppCompatActivity() {
 
         val timer = object : CountDownTimer(totalTime, 1000L) {
             override fun onTick(millisUntilFinished: Long) {
-                time_in_milli_seconds = millisUntilFinished
-                Log.i(TAG, """
+                timeRemaining = millisUntilFinished
+                Log.i(
+                    TAG, """
                     breakTimer()
-                    time_in_milli_seconds left: $time_in_milli_seconds
+                    Time left: $millisUntilFinished ms
                     ________________________________________________
-                """.trimIndent())
+                """.trimIndent()
+                )
                 updateTextUI()
             }
 
@@ -246,12 +243,10 @@ class MainActivity : AppCompatActivity() {
                 countDownTimer.start()
             }
         }
-        // i forgot why this worked, ill leave it i guess...
-//        isBreakTime = true
         return timer
     }
 
-    // made for stopping the timer while checking if there is a current break happening
+    // made for stopping the timer and checking if there is a current break happening to reset it
     private fun stopTimer() {
 
         if (isBreakTime) {
@@ -262,10 +257,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun turnOffButtons(button1: Button, button2: Button, turnThemOff: Boolean) {
+    private fun turnOffButtons(button1: Button, button2: Button, turnThemOff: Boolean) {
 
         if (turnThemOff) {
-            // make both buttons unclickable
+            // make both buttons un-clickable
             button1.isClickable = false
             button2.isClickable = false
             // reduce their alpha
@@ -285,14 +280,23 @@ class MainActivity : AppCompatActivity() {
     //                          DISPLAY CLOCK FORMAT METHODS                              //
     //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
     private fun updateTextUI() {
-        val hours = (time_in_milli_seconds / (1000 * 60 * 60)) % 24
-        val minute = (time_in_milli_seconds / (1000 * 60)) % 60
-        val seconds = (time_in_milli_seconds / 1000) % 60
 
-        displayTimer.text = timeFormat(hours, minute, seconds)
+        if (isBreakTime) {
+            val hours = (timeRemaining / (1000 * 60 * 60)) % 24
+            val minute = (timeRemaining / (1000 * 60)) % 60
+            val seconds = (timeRemaining / 1000) % 60
+
+            displayTimer.text = timeFormat(hours, minute, seconds)
+        } else {
+            val hours = (timeRemaining / (1000 * 60 * 60)) % 24
+            val minute = (timeRemaining / (1000 * 60)) % 60
+            val seconds = (timeRemaining / 1000) % 60
+
+            displayTimer.text = timeFormat(hours, minute, seconds)
+        }
     }
 
-    fun timeFormat(hour: Long, minute: Long, second: Long): String {
+    private fun timeFormat(hour: Long, minute: Long, second: Long): String {
         var hFormat = hour.toString()
         var mFormat = minute.toString()
         var sFormat = second.toString()
@@ -301,13 +305,11 @@ class MainActivity : AppCompatActivity() {
         if (mFormat.length == 1) mFormat = "0$minute"
         if (sFormat.length == 1) sFormat = "0$second"
 
-        val formattedTime = "$hFormat:$mFormat:$sFormat"
-
-        return formattedTime
+        return "$hFormat:$mFormat:$sFormat"
     }
 
 
-    fun presentSetTime(hour: Long, minute: Long): String {
+    private fun presentSetTime(hour: Long, minute: Long): String {
         var hFormat = hour.toString()
         var mFormat = minute.toString()
 
@@ -369,7 +371,7 @@ class MainActivity : AppCompatActivity() {
     //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
     //                              CUSTOM DIALOG SETUP                                   //
     //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
-    fun timeSetupDialog(view: View) {
+    private fun timeSetupDialog(view: View) {
         val whichButton = view as Button
         val buttonText = whichButton.text.toString()
 
@@ -384,10 +386,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun showValues() {
+    private fun showValues() {
         Log.d(
             TAG, """
-            -----------------------------------
             Work time Hours: $workTimeHours
             Work time Minutes: $workTimeMinutes
             ------------------------------------

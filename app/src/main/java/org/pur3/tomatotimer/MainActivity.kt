@@ -2,7 +2,9 @@ package org.pur3.tomatotimer
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.media.RingtoneManager
 import android.os.Build
@@ -19,8 +21,8 @@ import kotlin.random.Random
 
 private const val TAG = "MainActivity"
 
-// TODO: Make a notification banner that displays the countdown when the user leaves the app
 // TODO: Add persistence to save Work/Break time settings
+// TODO: Prevent the app from crashing when the user taps the back button while on MainActivity.
 var breakTimeHours: Long = 0L
 var breakTimeMinutes: Long = 5L
 var workTimeHours: Long = 0L
@@ -35,14 +37,11 @@ class MainActivity : AppCompatActivity() {
 
     private var isBreakTime: Boolean = false
     private var hasLeftApp: Boolean = false
+    private var isTimerCounting: Boolean = false
 
     private var timeRemaining: Long = 0L
 
-    var builder = NotificationCompat.Builder(this, CHANNEL_ID)
-        .setSmallIcon(R.drawable.ic_tomato)
-        .setContentTitle("Tomato Timer")
-        .setContentText("Come back and work!")
-        .setPriority(NotificationCompat.PRIORITY_HIGH)
+    lateinit var builder: NotificationCompat.Builder
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,7 +55,6 @@ class MainActivity : AppCompatActivity() {
 
         displayTimer.setOnClickListener {
             // FOR DEBUGGING THE WORK/BREAK DURATION BUTTONS
-            showValues()
         }
 
         displayTimer.text = presentSetTime(workTimeHours, workTimeMinutes)
@@ -69,6 +67,7 @@ class MainActivity : AppCompatActivity() {
                 "Start" -> {
                     countDownTimer = beginTimer(workTimeHours, workTimeMinutes)
                     countDownTimer.start()
+                    isTimerCounting = true
                     it.text = "Stop"
                     // Upon tapping the button when it says "Start" turn the button red
                     it.setBackgroundColor(Color.rgb(244, 67, 54))
@@ -82,6 +81,7 @@ class MainActivity : AppCompatActivity() {
 
                 "Stop" -> {
                     stopTimer()
+                    isTimerCounting = false
                     // "Zero" the time back to the user set time
                     displayTimer.text = presentSetTime(workTimeHours, workTimeMinutes)
                     // Set the button text to "Start"
@@ -104,12 +104,14 @@ class MainActivity : AppCompatActivity() {
                     // Call the resumeTimer()
                     countDownTimer = resumeTimer(timeRemaining)
                     countDownTimer.start()
+                    isTimerCounting = true
                     // turn off the setter buttons
                     turnOffButtons(
                         btnSetWorkDuration,
                         btnSetBreakDuration,
                         true
                     )
+                    hasLeftApp = false
                 }
             }
         }
@@ -123,6 +125,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         createNotificationChannel()
+        builder = notificationAlert()
     }
 
     override fun onResume() {
@@ -147,13 +150,21 @@ class MainActivity : AppCompatActivity() {
 
         hasLeftApp = true
         stopTimer()
-        val notificationId: Int = Random.nextInt()
-        // Works every now and then, make notificationId more reliable
-        with(NotificationManagerCompat.from(this)) {
-            // notificationId is a unique int for each notification that you must define
-            notify(notificationId, builder.build())
+
+        if (isTimerCounting) {
+            val notificationId: Int = Random.nextInt()
+            // Works every now and then, make notificationId more reliable
+            with(NotificationManagerCompat.from(this)) {
+                // notificationId is a unique int for each notification that you must define
+                notify(notificationId, builder.build())
+            }
         }
 
+        // if the user stops the timer and leaves the app, dont say anything
+        // if the user comes back and the resume button is not pressed, but the use leaves, dont say anything
+        // if the button says start and the user leaves, dont say anything
+
+        // Only speak if the user leaves while the timer was counting down.
         Log.i(TAG, "onPause(): Stopped timer and is showing notification")
     }
 
@@ -308,7 +319,6 @@ class MainActivity : AppCompatActivity() {
         return "$hFormat:$mFormat:$sFormat"
     }
 
-
     private fun presentSetTime(hour: Long, minute: Long): String {
         var hFormat = hour.toString()
         var mFormat = minute.toString()
@@ -352,22 +362,26 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun notificationAlert(textTitle: String, textContent: String) {
-        val notificationBuilder =
-            NotificationCompat.Builder(this, NotificationChannel.DEFAULT_CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle(textTitle)
-                .setContentText(textContent)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
+    /*
+    * Get this to bring the user back to the app with it's state the same as it was
+    * so  that the onResume method can work as intended.
+    */
+    fun notificationAlert(): NotificationCompat.Builder {
 
-        val notifiId = Random.nextInt()
-
-        with(NotificationManagerCompat.from(this)) {
-            // notificationId is a unique int for each notification that you must define
-            notify(notifiId, notificationBuilder.build())
-        }
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_warning)
+            .setContentTitle("Tomato Timer")
+            .setContentText("Come back and work!")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            // Notification removes itself upon user interaction.
+            .setAutoCancel(true)
+        return builder
     }
 
+    /* TODO: Make the notification take the user back into the app,
+             then make the notification go away after the press.
+             Also, make the notification announce the break starting and ending.
+    */
     //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
     //                              CUSTOM DIALOG SETUP                                   //
     //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
@@ -386,16 +400,4 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showValues() {
-        Log.d(
-            TAG, """
-            Work time Hours: $workTimeHours
-            Work time Minutes: $workTimeMinutes
-            ------------------------------------
-            Break time Hours: $breakTimeHours
-            Break time Minutes: $breakTimeMinutes
-            -----------------------------------
-        """.trimIndent()
-        )
-    }
 }

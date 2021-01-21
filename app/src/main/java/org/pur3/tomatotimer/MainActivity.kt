@@ -2,9 +2,7 @@ package org.pur3.tomatotimer
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
 import android.graphics.Color
 import android.media.RingtoneManager
 import android.os.Build
@@ -48,7 +46,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         displayTimer = findViewById(R.id.timerDisplay)
-        // Views of the MainActivity
         val btnStart = findViewById<Button>(R.id.btnStart)
         val btnSetWorkDuration = findViewById<Button>(R.id.btn_work_duration)
         val btnSetBreakDuration = findViewById<Button>(R.id.btn_break_duration)
@@ -160,11 +157,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // if the user stops the timer and leaves the app, dont say anything
-        // if the user comes back and the resume button is not pressed, but the use leaves, dont say anything
-        // if the button says start and the user leaves, dont say anything
-
-        // Only speak if the user leaves while the timer was counting down.
         Log.i(TAG, "onPause(): Stopped timer and is showing notification")
     }
 

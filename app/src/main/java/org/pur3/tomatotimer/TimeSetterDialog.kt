@@ -4,6 +4,7 @@ import android.app.AlertDialog
 import android.app.Dialog
 import android.os.Bundle
 import android.widget.EditText
+import android.widget.Toast
 import androidx.fragment.app.DialogFragment
 
 class TimeSetterDialog(val buttonName: String) : DialogFragment() {
@@ -66,7 +67,7 @@ class TimeSetterDialog(val buttonName: String) : DialogFragment() {
                 workTimeMinutes = minutesText.toLong()
                 displayTimer.text = presentSetTime(workTimeHours, workTimeMinutes)
             } else {
-                // Nothing has been set in the boxes, dont do anything
+                // "Ok" was tapped and nothing has been set in the boxes, don't do anything
             }
         } else {
 
@@ -74,17 +75,19 @@ class TimeSetterDialog(val buttonName: String) : DialogFragment() {
                 // if the user only is setting the minutes, just change the minutes and erase the hours
                 breakTimeHours = 0L
                 breakTimeMinutes = minutesText.toLong()
-                // TODO: Make a toast showing the set break timer
+                Toast.makeText(context, "Break timer set", Toast.LENGTH_LONG).show()
             } else if (hoursText.isNotBlank() && minutesText.isBlank()) {
                 // if the user is only setting the hours and not the minutes, change the hours and erase the minutes
                 breakTimeHours = hoursText.toLong()
                 breakTimeMinutes = 0L
+                Toast.makeText(context, "Break timer set", Toast.LENGTH_LONG).show()
             } else if (hoursText.isNotBlank() && minutesText.isNotBlank()) {
                 // If both the spots are filled, set them
                 breakTimeHours = hoursText.toLong()
                 breakTimeMinutes = minutesText.toLong()
+                Toast.makeText(context, "Break timer set", Toast.LENGTH_LONG).show()
             } else {
-                // Nothing has been set in the boxes, dont do anything
+                // "Ok" was tapped and nothing has been set in the boxes, don't do anything
             }
         }
     }

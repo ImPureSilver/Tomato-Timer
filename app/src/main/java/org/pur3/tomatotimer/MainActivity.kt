@@ -20,7 +20,11 @@ import kotlin.random.Random
 private const val TAG = "MainActivity"
 
 // TODO: Add persistence to save Work/Break time settings
+
 // TODO: Prevent the app from crashing when the user taps the back button while on MainActivity.
+//       When the app is started and then the back button is pressed, the app crashes due to the
+//       displayTimer not being assigned it's corresponding Object.
+
 var breakTimeHours: Long = 0L
 var breakTimeMinutes: Long = 5L
 var workTimeHours: Long = 0L
@@ -49,10 +53,6 @@ class MainActivity : AppCompatActivity() {
         val btnStart = findViewById<Button>(R.id.btnStart)
         val btnSetWorkDuration = findViewById<Button>(R.id.btn_work_duration)
         val btnSetBreakDuration = findViewById<Button>(R.id.btn_break_duration)
-
-        displayTimer.setOnClickListener {
-            // FOR DEBUGGING THE WORK/BREAK DURATION BUTTONS
-        }
 
         displayTimer.text = presentSetTime(workTimeHours, workTimeMinutes)
 

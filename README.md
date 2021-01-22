@@ -16,12 +16,12 @@ to do other things other than that. Also, this can be pitched to those with ADD/
 from a friend of mine that opted in to use the app fulltime for me.
 
 # Features
-*Simple design
-*Easy setup
-*No ads
-*No annoying banners
-*Attention grabbing reminder
-*Open-Source
+* Simple design
+* Easy setup
+* No ads
+* No annoying banners
+* Attention grabbing reminder
+* Open-Source
 
 # Download
 Google PlayStore

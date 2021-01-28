@@ -31,4 +31,10 @@
     <string name="btn_status_stop">Stop</string>
     <string name="btn_status_resume">Resume</string>
 
+    <!-- Info status for the user -->
+    <string name="text_info_timer_working">Press and hold to pause.</string>
+    <string name="text_info_ready_to_start">Ready to begin?</string>
+    <string name="text_info_ready_to_resume">Ready to get back into it?</string>
+    <string name="text_info_break">Take a break, you\'ve earned it</string>
+
 </resources>

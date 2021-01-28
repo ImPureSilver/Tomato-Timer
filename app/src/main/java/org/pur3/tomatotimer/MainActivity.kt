@@ -40,8 +40,9 @@ class MainActivity : AppCompatActivity() {
     private var isBreakTime: Boolean = false
     private var hasLeftApp: Boolean = false
     private var isTimerCounting: Boolean = false
-
     private var timeRemaining: Long = 0L
+
+    private lateinit var infoText: TextView
 
     lateinit var builder: NotificationCompat.Builder
 
@@ -50,6 +51,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         displayTimer = findViewById(R.id.timerDisplay)
+        infoText = findViewById(R.id.info_text)
         val btnStart = findViewById<Button>(R.id.btnStart)
         val btnSetWorkDuration = findViewById<Button>(R.id.btn_work_duration)
         val btnSetBreakDuration = findViewById<Button>(R.id.btn_break_duration)
@@ -66,23 +68,29 @@ class MainActivity : AppCompatActivity() {
                     countDownTimer.start()
                     isTimerCounting = true
                     it.text = "Stop"
+                    infoText.text = getString(R.string.text_info_timer_working)
                     // Upon tapping the button when it says "Start" turn the button red
                     it.setBackgroundColor(Color.rgb(244, 67, 54))
+                    // Change textInfo to let user know how to pause the timer.
+                    infoText.text = getText(R.string.text_info_timer_working)
                     // Grey out the set Work/Break buttons
                     turnOffButtons(
                         btnSetWorkDuration,
                         btnSetBreakDuration,
                         true
                     )
+                    if (hasLeftApp) hasLeftApp = false
                 }
 
                 "Stop" -> {
                     stopTimer()
                     isTimerCounting = false
-                    // "Zero" the time back to the user set time
+                    // "Zero" the time back to the set time
                     displayTimer.text = presentSetTime(workTimeHours, workTimeMinutes)
                     // Set the button text to "Start"
                     it.text = "Start"
+                    // Set textInfo
+                    infoText.text = getString(R.string.text_info_ready_to_start)
                     // Change the background color of the button to Green
                     it.setBackgroundColor(Color.rgb(76, 175, 80))
                     // Re-color the set Work/Break buttons
@@ -91,11 +99,13 @@ class MainActivity : AppCompatActivity() {
                         btnSetBreakDuration,
                         false
                     )
+                    if (hasLeftApp) hasLeftApp = false
                 }
 
                 "Resume" -> {
                     // change the button text to "Stop"
                     it.text = "Stop"
+                    infoText.text = getString(R.string.text_info_timer_working)
                     // Upon tapping the button when it says "Start" turn the button red
                     it.setBackgroundColor(Color.rgb(244, 67, 54))
                     // Call the resumeTimer()
@@ -108,9 +118,28 @@ class MainActivity : AppCompatActivity() {
                         btnSetBreakDuration,
                         true
                     )
-                    hasLeftApp = false
+                    if (hasLeftApp) hasLeftApp = false
                 }
             }
+        }
+
+        btnStart.setOnLongClickListener {
+            it as Button
+            // Pause button feature
+            when (it.text) {
+                "Stop" -> {
+                    if (isTimerCounting) {
+                        countDownTimer.cancel()
+                        isTimerCounting = false
+                        it.text = "Resume"
+                        it.setBackgroundColor(Color.BLUE)
+                        infoText.text = getString(R.string.text_info_ready_to_resume)
+                        Log.i(TAG, "Stopped timer at will.")
+                    }
+                }
+            }
+
+            true
         }
 
         btnSetWorkDuration.setOnClickListener {
@@ -125,30 +154,47 @@ class MainActivity : AppCompatActivity() {
         builder = notificationAlert()
     }
 
+    override fun onBackPressed() {
+        // Do nothing, this is to prevent the app from crashing due to displayTimer not having
+        // a TextView reference when android call onPause().
+    }
+
     override fun onResume() {
         super.onResume()
 
-        if (hasLeftApp == true && isBreakTime == false) {
+        if (hasLeftApp  && isBreakTime == false) {
             // Set the button text to "Resume", onCreate has the logic for resuming time.
             val button = findViewById<Button>(R.id.btnStart)
             button.text = "Resume"
             // Set the button color to Blue
             button.setBackgroundColor(Color.BLUE)
+            // User is back in the app
+            hasLeftApp = false
+            Log.i(
+                TAG,
+                "onResume(): Has set button text to 'Resume' and remaining time is: $timeRemaining"
+            )
         }
 
-        Log.i(
-            TAG,
-            "onResume(): Has set button text to 'Resume' and remaining time is: $timeRemaining"
-        )
+        Log.i(TAG, "onResume(): hasLeftApp = false")
     }
 
     override fun onPause() {
         super.onPause()
 
         hasLeftApp = true
-        stopTimer()
+        Log.i(TAG, "onPause(): hasLeftApp = true ")
 
-        if (isTimerCounting) {
+        // If user leaves app while on break, spawn notification with break-timer continuing
+        if (isBreakTime && isTimerCounting) {
+            // TODO: Make a notification showing the break-timer countdown
+            Log.i(TAG, "onPause(): Spawning remaining time in a notification")
+        }
+
+        // User is working and then leaves app, remind them to comeback with a dropdown Notification
+        if (isBreakTime == false && isTimerCounting) {
+            stopTimer()
+            isTimerCounting = false
             val notificationId: Int = Random.nextInt()
             // Works every now and then, make notificationId more reliable
             with(NotificationManagerCompat.from(this)) {
@@ -164,6 +210,11 @@ class MainActivity : AppCompatActivity() {
     //                         START/STOP/RESUME TIMER METHODS                            //
     //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
     private fun beginTimer(hours: Long, minutes: Long): CountDownTimer {
+
+        if (hours == 0L && minutes == 0L) {
+            // return the base work timer
+            return beginTimer(0L, 25L)
+        }
 
         val hourInMillis = hours * 3_600_000L
         val minInMillis = minutes * 60_000L
@@ -186,6 +237,7 @@ class MainActivity : AppCompatActivity() {
             override fun onFinish() {
                 soundTimer()
                 isBreakTime = true
+                infoText.text = getString(R.string.text_info_break)
                 countDownTimer = breakTimer(breakTimeHours, breakTimeMinutes)
                 countDownTimer.start()
                 Log.i(TAG, "Break time has started")
@@ -195,9 +247,9 @@ class MainActivity : AppCompatActivity() {
         return timer
     }
 
-    private fun resumeTimer(timeRemaining: Long): CountDownTimer {
+    private fun resumeTimer(timeLeft: Long): CountDownTimer {
 
-        val timer = object : CountDownTimer(timeRemaining, 1000L) {
+        val timer = object : CountDownTimer(timeLeft, 1000L) {
             override fun onTick(millisUntilFinished: Long) {
                 this@MainActivity.timeRemaining = millisUntilFinished
                 Log.i(
@@ -207,20 +259,36 @@ class MainActivity : AppCompatActivity() {
                     ________________________________________________
                 """.trimIndent()
                 )
+                timeRemaining = millisUntilFinished
                 updateTextUI()
             }
 
             override fun onFinish() {
                 soundTimer()
-                isBreakTime = true
-                countDownTimer = beginTimer(breakTimeHours, breakTimeMinutes)
-                countDownTimer.start()
+                if (isBreakTime) {
+                    isBreakTime = false
+                    infoText.text = getString(R.string.text_info_timer_working)
+                    // Start the break timer
+                    countDownTimer = beginTimer(workTimeHours, workTimeMinutes)
+                    countDownTimer.start()
+                    beginTimer(workTimeHours, workTimeMinutes)
+                } else {
+                    isBreakTime = true
+                    infoText.text = getString(R.string.text_info_break)
+                    // Start the break timer
+                    countDownTimer = breakTimer(breakTimeHours, breakTimeMinutes)
+                    countDownTimer.start()
+                }
             }
         }
         return timer
     }
 
     private fun breakTimer(hours: Long, minutes: Long): CountDownTimer {
+
+        if(hours == 0L && minutes == 0L) {
+            return breakTimer(0L, 5L)
+        }
 
         val hourInMillis = hours * 3_600_000L
         val minInMillis = minutes * 60_000L
@@ -242,6 +310,8 @@ class MainActivity : AppCompatActivity() {
             override fun onFinish() {
                 soundTimer()
                 isBreakTime = false
+                // Start working timer
+                infoText.text = getString(R.string.text_info_timer_working)
                 countDownTimer = beginTimer(workTimeHours, workTimeMinutes)
                 countDownTimer.start()
             }
@@ -252,11 +322,18 @@ class MainActivity : AppCompatActivity() {
     // made for stopping the timer and checking if there is a current break happening to reset it
     private fun stopTimer() {
 
+        // TODO: Work on this logic
+        if(isBreakTime && hasLeftApp) {
+            // Let the timer keep counting, it's their break
+        }
+
         if (isBreakTime) {
             countDownTimer.cancel()
+            isTimerCounting = false
             isBreakTime = false
         } else {
             countDownTimer.cancel()
+            isTimerCounting = false
         }
     }
 

@@ -37,4 +37,11 @@
     <string name="text_info_ready_to_resume">Ready to get back into it?</string>
     <string name="text_info_break">Take a break, you\'ve earned it</string>
 
+    <!-- Shared Preferences -->
+    <string name="preference_file_key">org.pur3.tomatotimer.pfk</string>
+    <string name="saved_worktime_hours">0</string>
+    <string name="saved_worktime_minutes">25</string>
+    <string name="saved_breaktime_hours">0</string>
+    <string name="saved_breaktime_minutes">5</string>
+
 </resources>

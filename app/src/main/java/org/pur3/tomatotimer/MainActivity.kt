@@ -8,10 +8,12 @@ import android.media.RingtoneManager
 import android.os.Build
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.provider.Settings.Global.putLong
 import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -19,16 +21,10 @@ import kotlin.random.Random
 
 private const val TAG = "MainActivity"
 
-// TODO: Add persistence to save Work/Break time settings
-
-// TODO: Prevent the app from crashing when the user taps the back button while on MainActivity.
-//       When the app is started and then the back button is pressed, the app crashes due to the
-//       displayTimer not being assigned it's corresponding Object.
-
-var breakTimeHours: Long = 0L
-var breakTimeMinutes: Long = 5L
-var workTimeHours: Long = 0L
-var workTimeMinutes: Long = 25L
+var breakTimeHours: Int = 0
+var breakTimeMinutes: Int = 5
+var workTimeHours: Int = 0
+var workTimeMinutes: Int = 25
 
 lateinit var displayTimer: TextView
 
@@ -39,7 +35,7 @@ class MainActivity : AppCompatActivity() {
 
     private var isBreakTime: Boolean = false
     private var hasLeftApp: Boolean = false
-    private var isTimerCounting: Boolean = false
+    private var wasTimerCounting: Boolean = false
     private var timeRemaining: Long = 0L
 
     private lateinit var infoText: TextView
@@ -56,7 +52,8 @@ class MainActivity : AppCompatActivity() {
         val btnSetWorkDuration = findViewById<Button>(R.id.btn_work_duration)
         val btnSetBreakDuration = findViewById<Button>(R.id.btn_break_duration)
 
-        displayTimer.text = presentSetTime(workTimeHours, workTimeMinutes)
+//        displayTimer.text = presentSetTime(workTimeHours, workTimeMinutes)
+        readCurrentSetting()
 
         btnStart.setOnClickListener {
             it as Button
@@ -66,7 +63,7 @@ class MainActivity : AppCompatActivity() {
                 "Start" -> {
                     countDownTimer = beginTimer(workTimeHours, workTimeMinutes)
                     countDownTimer.start()
-                    isTimerCounting = true
+                    wasTimerCounting = true
                     it.text = "Stop"
                     infoText.text = getString(R.string.text_info_timer_working)
                     // Upon tapping the button when it says "Start" turn the button red
@@ -84,7 +81,7 @@ class MainActivity : AppCompatActivity() {
 
                 "Stop" -> {
                     stopTimer()
-                    isTimerCounting = false
+                    wasTimerCounting = false
                     // "Zero" the time back to the set time
                     displayTimer.text = presentSetTime(workTimeHours, workTimeMinutes)
                     // Set the button text to "Start"
@@ -111,7 +108,7 @@ class MainActivity : AppCompatActivity() {
                     // Call the resumeTimer()
                     countDownTimer = resumeTimer(timeRemaining)
                     countDownTimer.start()
-                    isTimerCounting = true
+                    wasTimerCounting = true
                     // turn off the setter buttons
                     turnOffButtons(
                         btnSetWorkDuration,
@@ -128,9 +125,9 @@ class MainActivity : AppCompatActivity() {
             // Pause button feature
             when (it.text) {
                 "Stop" -> {
-                    if (isTimerCounting) {
+                    if (wasTimerCounting) {
                         countDownTimer.cancel()
-                        isTimerCounting = false
+//                        wasTimerCounting = false
                         it.text = "Resume"
                         it.setBackgroundColor(Color.BLUE)
                         infoText.text = getString(R.string.text_info_ready_to_resume)
@@ -141,6 +138,16 @@ class MainActivity : AppCompatActivity() {
 
             true
         }
+
+        displayTimer.setOnClickListener{
+            // FOR DEBUGGING
+            readCurrentSetting()
+        }
+
+//        displayTimer.setOnLongClickListener {
+//            readCurrentSetting()
+//            true
+//        }
 
         btnSetWorkDuration.setOnClickListener {
             timeSetupDialog(it)
@@ -156,27 +163,24 @@ class MainActivity : AppCompatActivity() {
 
     override fun onBackPressed() {
         // Do nothing, this is to prevent the app from crashing due to displayTimer not having
-        // a TextView reference when android call onPause().
+        // a TextView reference when android calls onPause() when the app is first started.
     }
 
     override fun onResume() {
         super.onResume()
 
-        if (hasLeftApp  && isBreakTime == false) {
+        if (hasLeftApp && !this.isBreakTime && wasTimerCounting) {
             // Set the button text to "Resume", onCreate has the logic for resuming time.
             val button = findViewById<Button>(R.id.btnStart)
             button.text = "Resume"
             // Set the button color to Blue
             button.setBackgroundColor(Color.BLUE)
-            // User is back in the app
-            hasLeftApp = false
             Log.i(
                 TAG,
                 "onResume(): Has set button text to 'Resume' and remaining time is: $timeRemaining"
             )
         }
 
-        Log.i(TAG, "onResume(): hasLeftApp = false")
     }
 
     override fun onPause() {
@@ -186,34 +190,33 @@ class MainActivity : AppCompatActivity() {
         Log.i(TAG, "onPause(): hasLeftApp = true ")
 
         // If user leaves app while on break, spawn notification with break-timer continuing
-        if (isBreakTime && isTimerCounting) {
+        if (isBreakTime && wasTimerCounting) {
             // TODO: Make a notification showing the break-timer countdown
             Log.i(TAG, "onPause(): Spawning remaining time in a notification")
         }
 
         // User is working and then leaves app, remind them to comeback with a dropdown Notification
-        if (isBreakTime == false && isTimerCounting) {
+        if (!isBreakTime && wasTimerCounting) {
             stopTimer()
-            isTimerCounting = false
             val notificationId: Int = Random.nextInt()
             // Works every now and then, make notificationId more reliable
             with(NotificationManagerCompat.from(this)) {
                 // notificationId is a unique int for each notification that you must define
                 notify(notificationId, builder.build())
             }
+            Log.i(TAG, "onPause(): Stopped timer and is showing notification")
         }
 
-        Log.i(TAG, "onPause(): Stopped timer and is showing notification")
     }
 
     //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
     //                         START/STOP/RESUME TIMER METHODS                            //
     //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
-    private fun beginTimer(hours: Long, minutes: Long): CountDownTimer {
+    private fun beginTimer(hours: Int, minutes: Int): CountDownTimer {
 
-        if (hours == 0L && minutes == 0L) {
+        if (hours == 0 && minutes == 0) {
             // return the base work timer
-            return beginTimer(0L, 25L)
+            return beginTimer(0, 25)
         }
 
         val hourInMillis = hours * 3_600_000L
@@ -268,10 +271,9 @@ class MainActivity : AppCompatActivity() {
                 if (isBreakTime) {
                     isBreakTime = false
                     infoText.text = getString(R.string.text_info_timer_working)
-                    // Start the break timer
+                    // Start the work timer
                     countDownTimer = beginTimer(workTimeHours, workTimeMinutes)
                     countDownTimer.start()
-                    beginTimer(workTimeHours, workTimeMinutes)
                 } else {
                     isBreakTime = true
                     infoText.text = getString(R.string.text_info_break)
@@ -284,10 +286,10 @@ class MainActivity : AppCompatActivity() {
         return timer
     }
 
-    private fun breakTimer(hours: Long, minutes: Long): CountDownTimer {
+    private fun breakTimer(hours: Int, minutes: Int): CountDownTimer {
 
-        if(hours == 0L && minutes == 0L) {
-            return breakTimer(0L, 5L)
+        if (hours == 0 && minutes == 0) {
+            return breakTimer(0, 5)
         }
 
         val hourInMillis = hours * 3_600_000L
@@ -319,22 +321,8 @@ class MainActivity : AppCompatActivity() {
         return timer
     }
 
-    // made for stopping the timer and checking if there is a current break happening to reset it
     private fun stopTimer() {
-
-        // TODO: Work on this logic
-        if(isBreakTime && hasLeftApp) {
-            // Let the timer keep counting, it's their break
-        }
-
-        if (isBreakTime) {
-            countDownTimer.cancel()
-            isTimerCounting = false
-            isBreakTime = false
-        } else {
-            countDownTimer.cancel()
-            isTimerCounting = false
-        }
+        countDownTimer.cancel()
     }
 
     private fun turnOffButtons(button1: Button, button2: Button, turnThemOff: Boolean) {
@@ -388,7 +376,7 @@ class MainActivity : AppCompatActivity() {
         return "$hFormat:$mFormat:$sFormat"
     }
 
-    private fun presentSetTime(hour: Long, minute: Long): String {
+    private fun presentSetTime(hour: Int, minute: Int): String {
         var hFormat = hour.toString()
         var mFormat = minute.toString()
 
@@ -428,6 +416,8 @@ class MainActivity : AppCompatActivity() {
             val notificationManager: NotificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
+
+            Log.i(TAG, "Notification Channel Created!")
         }
     }
 
@@ -439,7 +429,19 @@ class MainActivity : AppCompatActivity() {
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_warning)
-            .setContentTitle("Tomato Timer")
+            .setContentTitle("Tomato-Timer")
+            .setContentText("Come back and work!")
+            .setTicker("Stop")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            // Notification removes itself upon pressing it.
+            .setAutoCancel(true)
+        return builder
+    }
+
+    fun notificationTimer(remainingTime: Long): NotificationCompat.Builder {
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_warning)
+            .setContentTitle("Tomato_Timer")
             .setContentText("Come back and work!")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             // Notification removes itself upon user interaction.
@@ -451,6 +453,7 @@ class MainActivity : AppCompatActivity() {
              then make the notification go away after the press.
              Also, make the notification announce the break starting and ending.
     */
+
     //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
     //                              CUSTOM DIALOG SETUP                                   //
     //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
@@ -467,6 +470,42 @@ class MainActivity : AppCompatActivity() {
             val dialog = TimeSetterDialog(buttonText)
             dialog.show(supportFragmentManager, "$buttonText dialog")
         }
+    }
+
+    //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
+    //                            TIMER READ/WRITE SETTINGS                               //
+    //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
+//    private fun saveCurrentSetting() {
+//
+//        val sharedPref = application?.getSharedPreferences(
+//            getString(R.string.preference_file_key), Context.MODE_PRIVATE
+//        )
+//
+//        with(sharedPref?.edit()) {
+//            this?.putInt(getString(R.string.saved_worktime_hours), workTimeHours)
+//            this?.putInt(getString(R.string.saved_worktime_minutes), workTimeMinutes)
+//            this?.putInt(getString(R.string.saved_breaktime_hours), breakTimeHours)
+//            this?.putInt(getString(R.string.saved_breaktime_minutes), breakTimeMinutes)
+//            this?.apply()
+//        }
+//    }
+
+    private fun readCurrentSetting() {
+
+        val sharedPref = application.getSharedPreferences(
+            getString(R.string.preference_file_key), Context.MODE_PRIVATE
+        )
+
+        val defaultVal = 0
+        val defaultWorkTime = 25 // 25 Minutes of work
+        val defaultBreakTime = 5 // 5 Minutes of break
+
+        workTimeHours = sharedPref.getInt(getString(R.string.saved_worktime_hours), defaultVal)
+        workTimeMinutes = sharedPref.getInt(getString(R.string.saved_worktime_minutes), defaultWorkTime)
+        breakTimeHours = sharedPref.getInt(getString(R.string.saved_breaktime_hours), defaultVal)
+        breakTimeMinutes = sharedPref.getInt(getString(R.string.saved_breaktime_minutes), defaultBreakTime)
+
+        displayTimer.text = presentSetTime(workTimeHours, workTimeMinutes)
     }
 
 }

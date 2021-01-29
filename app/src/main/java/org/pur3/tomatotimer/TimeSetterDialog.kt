@@ -2,6 +2,7 @@ package org.pur3.tomatotimer
 
 import android.app.AlertDialog
 import android.app.Dialog
+import android.content.Context
 import android.os.Bundle
 import android.widget.EditText
 import android.widget.Toast
@@ -33,7 +34,7 @@ class TimeSetterDialog(val buttonName: String) : DialogFragment() {
         } ?: throw IllegalStateException("Activity cannot be null")
     }
 
-    private fun presentSetTime(hour: Long, minute: Long): String {
+    private fun presentSetTime(hour: Int, minute: Int): String {
         var hFormat = hour.toString()
         var mFormat = minute.toString()
 
@@ -53,19 +54,22 @@ class TimeSetterDialog(val buttonName: String) : DialogFragment() {
         if (buttonName == "Work Duration") {
             if (hoursText.isBlank() && minutesText.isNotBlank()) {
                 // if the user only is setting the minutes, just change the minutes and erase the hours
-                workTimeHours = 0L
-                workTimeMinutes = minutesText.toLong()
+                workTimeHours = 0
+                workTimeMinutes = minutesText.toInt()
                 displayTimer.text = presentSetTime(workTimeHours, workTimeMinutes)
+                saveWorkTimeSettings()
             } else if (hoursText.isNotBlank() && minutesText.isBlank()) {
                 // if the user is only setting the hours and not the minutes, change the hours and erase the minutes
-                workTimeHours = hoursText.toLong()
-                workTimeMinutes = 0L
+                workTimeHours = hoursText.toInt()
+                workTimeMinutes = 0
                 displayTimer.text = presentSetTime(workTimeHours, workTimeMinutes)
+                saveWorkTimeSettings()
             } else if (hoursText.isNotBlank() && minutesText.isNotBlank()) {
                 // If both the spots are filled, set them
-                workTimeHours = hoursText.toLong()
-                workTimeMinutes = minutesText.toLong()
+                workTimeHours = hoursText.toInt()
+                workTimeMinutes = minutesText.toInt()
                 displayTimer.text = presentSetTime(workTimeHours, workTimeMinutes)
+                saveWorkTimeSettings()
             } else {
                 // "Ok" was tapped and nothing has been set in the boxes, don't do anything
             }
@@ -73,23 +77,65 @@ class TimeSetterDialog(val buttonName: String) : DialogFragment() {
 
             if (hoursText.isBlank() && minutesText.isNotBlank()) {
                 // if the user only is setting the minutes, just change the minutes and erase the hours
-                breakTimeHours = 0L
-                breakTimeMinutes = minutesText.toLong()
+                breakTimeHours = 0
+                breakTimeMinutes = minutesText.toInt()
                 Toast.makeText(context, "Break timer set", Toast.LENGTH_LONG).show()
+                saveBreakTimeSettings()
             } else if (hoursText.isNotBlank() && minutesText.isBlank()) {
                 // if the user is only setting the hours and not the minutes, change the hours and erase the minutes
-                breakTimeHours = hoursText.toLong()
-                breakTimeMinutes = 0L
+                breakTimeHours = hoursText.toInt()
+                breakTimeMinutes = 0
                 Toast.makeText(context, "Break timer set", Toast.LENGTH_LONG).show()
+                saveBreakTimeSettings()
             } else if (hoursText.isNotBlank() && minutesText.isNotBlank()) {
                 // If both the spots are filled, set them
-                breakTimeHours = hoursText.toLong()
-                breakTimeMinutes = minutesText.toLong()
+                breakTimeHours = hoursText.toInt()
+                breakTimeMinutes = minutesText.toInt()
                 Toast.makeText(context, "Break timer set", Toast.LENGTH_LONG).show()
+                saveBreakTimeSettings()
             } else {
                 // "Ok" was tapped and nothing has been set in the boxes, don't do anything
             }
         }
     }
 
+//    private fun saveSettings() {
+//        val sharedPref = activity?.getSharedPreferences(
+//            getString(R.string.preference_file_key), Context.MODE_PRIVATE
+//        )
+//
+//        with(sharedPref?.edit()) {
+//            this?.putInt(getString(R.string.saved_worktime_hours), workTimeHours)
+//            this?.putInt(getString(R.string.saved_worktime_minutes), workTimeMinutes)
+//            this?.putInt(getString(R.string.saved_breaktime_hours), breakTimeHours)
+//            this?.putInt(getString(R.string.saved_breaktime_minutes), breakTimeMinutes)
+//            this?.apply()
+//        }
+//
+//        Toast.makeText(context, "<<< data has been written >>>", Toast.LENGTH_LONG).show()
+//    }
+
+    private fun saveWorkTimeSettings() {
+        val sharedPref = activity?.getSharedPreferences(
+            getString(R.string.preference_file_key), Context.MODE_PRIVATE
+        )
+
+        with(sharedPref?.edit()) {
+            this?.putInt(getString(R.string.saved_worktime_hours), workTimeHours)
+            this?.putInt(getString(R.string.saved_worktime_minutes), workTimeMinutes)
+            this?.apply()
+        }
+    }
+
+    private fun saveBreakTimeSettings() {
+        val sharedPref = activity?.getSharedPreferences(
+            getString(R.string.preference_file_key), Context.MODE_PRIVATE
+        )
+
+        with(sharedPref?.edit()) {
+            this?.putInt(getString(R.string.saved_breaktime_hours), breakTimeHours)
+            this?.putInt(getString(R.string.saved_breaktime_minutes), breakTimeMinutes)
+            this?.apply()
+        }
+    }
 }

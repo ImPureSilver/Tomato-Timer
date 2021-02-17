@@ -3,7 +3,7 @@ A simplistic and to the point tomato timer for productivity.
 
 # Demo
 <p align="center">
-  <img src="https://user-images.githubusercontent.com/41513961/108279092-0b895400-714a-11eb-931b-2dfff51661f1.jpg" alt="photo#1" height="500" width="300">
+  <img src="https://user-images.githubusercontent.com/41513961/108279092-0b895400-714a-11eb-931b-2dfff51661f1.jpg" alt="photo#1" height="500" width="250">
   <img src="https://user-images.githubusercontent.com/41513961/108279133-1a700680-714a-11eb-9e83-5a22d361b346.jpg" alt="photo#2" width="738">
   <img src="https://user-images.githubusercontent.com/41513961/108279125-17751600-714a-11eb-8c89-bc919571b50b.jpg" alt="photo#3" width="738">
 </p>

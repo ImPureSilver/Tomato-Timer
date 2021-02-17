@@ -1,5 +1,5 @@
 # Tomato-Timer
-A simplistic and to the point tomato timer for productivity.
+A simplistic tomato timer for productivity.
 
 # Preview Photos
 <p align="center">

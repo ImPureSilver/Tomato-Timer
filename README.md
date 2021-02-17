@@ -15,12 +15,12 @@ in the middle of the timer counting to remind you to comeback
 and keep on working.
 
 # Features
-*Simple design
-*Easy setup
-*No ads
-*No annoying banners
-*Attention grabbing reminder
-*Open-Source
+* Simple design
+* Easy setup
+* No ads
+* No annoying banners
+* Attention grabbing reminder
+* Open-Source
 
 # Download
-Google PlayStore
+[Google PlayStore](https://play.google.com/store/apps/details?id=org.pur3.tomatotimer)

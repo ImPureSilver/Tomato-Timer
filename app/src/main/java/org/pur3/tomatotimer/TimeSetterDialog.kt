@@ -99,22 +99,6 @@ class TimeSetterDialog(val buttonName: String) : DialogFragment() {
         }
     }
 
-//    private fun saveSettings() {
-//        val sharedPref = activity?.getSharedPreferences(
-//            getString(R.string.preference_file_key), Context.MODE_PRIVATE
-//        )
-//
-//        with(sharedPref?.edit()) {
-//            this?.putInt(getString(R.string.saved_worktime_hours), workTimeHours)
-//            this?.putInt(getString(R.string.saved_worktime_minutes), workTimeMinutes)
-//            this?.putInt(getString(R.string.saved_breaktime_hours), breakTimeHours)
-//            this?.putInt(getString(R.string.saved_breaktime_minutes), breakTimeMinutes)
-//            this?.apply()
-//        }
-//
-//        Toast.makeText(context, "<<< data has been written >>>", Toast.LENGTH_LONG).show()
-//    }
-
     private fun saveWorkTimeSettings() {
         val sharedPref = activity?.getSharedPreferences(
             getString(R.string.preference_file_key), Context.MODE_PRIVATE
